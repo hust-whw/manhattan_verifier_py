@@ -2,7 +2,8 @@ from scipy.spatial.distance import cityblock
 from sklearn.metrics import roc_curve
 import pandas
 import numpy as np
- 
+np.set_printoptions(suppress = True)
+
 class ManhattanVerifier:
   
     def __init__(self, subjects):
@@ -34,13 +35,21 @@ class ManhattanVerifier:
         # Compute FAR and FRR
         fars, tars, thresholds = roc_curve(labels, scores)
         frrs = 1 - tars
-        i = np.where(thresholds == [x for x in thresholds if x > t][-1])
-        j = np.where(thresholds == [x for x in thresholds if x <= t][0])
+        i = np.where(thresholds == ([x for x in thresholds if x > t][-1] if [x for x in thresholds if x > t] else [x for x in thresholds][0]))
+        j = np.where(thresholds == ([x for x in thresholds if x <= t][0] if [x for x in thresholds if x <= t] else [x for x in thresholds][-1]))
         far = fars[i[0][0]]
         frr = frrs[j[0][0]]
 
+        # Compute EER
+        dists = frrs - fars
+        idx1 = np.argmin(dists[dists >= 0])
+        idx2 = np.argmax(dists[dists < 0])
+        x = [frrs[idx1], fars[idx1]]
+        y = [frrs[idx2], fars[idx2]]
+        eer = x[0] + (x[0] - x[1]) / (y[1] - x[1] - y[0] + x[0]) * (y[0] - x[0])
+
         # Keep 4 digit for float
-        return round(far,4),round(frr,4)
+        return round(far,4),round(frr,4),round(eer,4)
   
     def evaluate(self, threshold, type=None, user_index=1, N=200):
         ## Instruction of Type
@@ -89,23 +98,26 @@ class ManhattanVerifier:
         else:
             return arr[user_index-1]
 
-path     = "/Users/hustwhw/Desktop/NYIT/CSCI-860/project/DSL-StrongPasswordData.csv"
-data = pandas.read_csv(path)
-subjects = data["subject"].unique()
-a = ManhattanVerifier(subjects)
+if __name__ == '__main__':
+    path     = "/Users/hustwhw/Desktop/NYIT/CSCI-860/project/DSL-StrongPasswordData.csv"
+    data = pandas.read_csv(path)
+    subjects = data["subject"].unique()
+    a = ManhattanVerifier(subjects)
 
-type = str(input("Please choose KeyHold or KeyInterval (KH or KI): ") or 'KH')
-user_index = int(input("Please choose User (1-51): ") or 1)
-N = int(input("Please input N: ") or 200)
-while (True):
-    threshold = input("Please input Threshold: ")
-    if threshold:
-        break 
-result = a.evaluate(threshold=float(threshold), type=str(type), user_index=int(user_index), N=int(N))
+    type = str(input("Please choose KeyHold or KeyInterval (KH or KI): ") or 'KH')
+    user_index = int(input("Please choose User (1-51): ") or 1)
+    N = int(input("Please input N: ") or 200)
+    threshold = float(input("Please input Threshold: ") or 0.2)
 
-if isinstance(result,list):
-    for i,x in enumerate(result):
-        print("User "+str(i+1)+", FAR: "+str(x[0])+" FRR: "+str(x[1]))
-else:
-    print("FAR: "+str(result[0]))
-    print("FRR: "+str(result[1]))
+    result = a.evaluate(threshold=float(threshold), type=str(type), user_index=int(user_index), N=int(N))
+
+    if isinstance(result,list):
+        # for i,x in enumerate(result):
+        #     print("User "+str(i+1)+", FAR: "+str(x[0])+" FRR: "+str(x[1])+" EER: "+str(x[2]))
+        print("Mean FAR: "+str(np.mean([x[0] for x in result])))
+        print("Mean FRR: "+str(np.mean([x[1] for x in result])))
+        print("Mean EER: "+str(np.mean([x[2] for x in result])))
+    else:
+        print("FAR: "+str(result[0]))
+        print("FRR: "+str(result[1]))
+        print("EER: "+str(result[2]))
