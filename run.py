@@ -2,10 +2,6 @@ from scipy.spatial.distance import cityblock
 from sklearn.metrics import roc_curve
 import pandas
 import numpy as np
-np.set_printoptions(suppress = True)
-path     = "/Users/hustwhw/Desktop/NYIT/CSCI-860/project/DSL-StrongPasswordData.csv"
-data     = pandas.read_csv(path)
-subjects = data["subject"].unique()
  
 class ManhattanVerifier:
   
@@ -93,6 +89,7 @@ class ManhattanVerifier:
         else:
             return arr[user_index-1]
 
+path     = "/Users/hustwhw/Desktop/NYIT/CSCI-860/project/DSL-StrongPasswordData.csv"
 data = pandas.read_csv(path)
 subjects = data["subject"].unique()
 a = ManhattanVerifier(subjects)
